@@ -1,0 +1,484 @@
+<title>__TITLE__</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one reading column like an engineer's debrief sheet; charts and tables break out to full column width. */
+:root {
+  --bg: #f4f5f7; --panel: #ffffff; --ink: #14161a; --ink-2: #4a4f58; --ink-3: #7b818c; --rule: #dde0e5; --rule-2: #eceef1;
+  --accent: #1f5fbf;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100;
+  --good: #1a7f37; --good-bg: #e6f4ea; --bad: #c42b2b; --bad-bg: #fbeaea; --warn: #9a6400; --warn-bg: #fdf3dc;
+  --tyre-s: #d92d2d; --tyre-m: #e0ac00; --tyre-h: #9aa0a8; --tyre-i: #2e9e48; --tyre-w: #2a6fd6;
+  --f-display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --f-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #111317; --panel: #191c21; --ink: #eceef2; --ink-2: #b4bac4; --ink-3: #868d99; --rule: #2c3038; --rule-2: #22252b;
+  --accent: #6ea4f0; --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+  --good: #5cc27a; --good-bg: #16281c; --bad: #f07272; --bad-bg: #2d1a1a; --warn: #e0b04a; --warn-bg: #2b2414;
+  --tyre-h: #e4e6ea; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #111317; --panel: #191c21; --ink: #eceef2; --ink-2: #b4bac4; --ink-3: #868d99; --rule: #2c3038; --rule-2: #22252b;
+  --accent: #6ea4f0; --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500;
+  --good: #5cc27a; --good-bg: #16281c; --bad: #f07272; --bad-bg: #2d1a1a; --warn: #e0b04a; --warn-bg: #2b2414;
+  --tyre-h: #e4e6ea; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.6 var(--f-body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 28px 64px; }
+.wrap { max-width: 980px; margin: 0 auto; display: grid; gap: 40px; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.1; }
+h1 { font-size: clamp(34px, 6vw, 52px); font-weight: 700; letter-spacing: .01em; }
+h2 { font-size: 30px; font-weight: 600; display: flex; align-items: baseline; gap: 12px; }
+h2 .k { font-family: var(--f-mono); font-size: 13px; color: var(--ink-3); font-weight: 400; letter-spacing: .06em; }
+h3 { font-size: 21px; font-weight: 600; }
+p { margin: 0; max-width: 68ch; }
+.mono, .num { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.eyebrow { font: 600 12px/1 var(--f-mono); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); }
+section { display: grid; gap: 16px; min-width: 0; }
+.lede { font-size: 18px; line-height: 1.55; max-width: 64ch; }
+.muted { color: var(--ink-2); }
+.small { font-size: 13px; color: var(--ink-3); }
+
+header { display: grid; gap: 14px; border-bottom: 2px solid var(--ink); padding-bottom: 22px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { font: 500 12px/1 var(--f-mono); padding: 6px 9px; border: 1px solid var(--rule); border-radius: 4px; background: var(--panel); color: var(--ink-2); }
+
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1px; background: var(--rule); border: 1px solid var(--rule); border-radius: 6px; overflow: hidden; }
+.tile { background: var(--panel); padding: 14px 16px; display: grid; gap: 4px; align-content: start; }
+.tile .v { font: 600 30px/1.1 var(--f-display); font-variant-numeric: tabular-nums; }
+.tile .l { font: 600 11px/1.2 var(--f-mono); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); }
+.tile .n { font-size: 13px; color: var(--ink-2); }
+.tile.good .v { color: var(--good); } .tile.bad .v { color: var(--bad); }
+
+.panel { background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; padding: 16px; min-width: 0; }
+.chart { width: 100%; overflow-x: auto; }
+.chart svg { display: block; width: 100%; height: auto; min-width: 560px; }
+.chart svg text { fill: var(--ink-3); font: 11px var(--f-mono); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--ink-2); }
+.legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
+.legend i.sq { width: 10px; height: 10px; }
+
+.cards { display: grid; gap: 14px; }
+.card { background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; padding: 18px; display: grid; gap: 10px; min-width: 0; }
+.card.good { border-left: 4px solid var(--good); }
+.card.bad { border-left: 4px solid var(--bad); }
+.card-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 16px; align-items: baseline; }
+.when { font: 500 12px/1.3 var(--f-mono); color: var(--ink-3); letter-spacing: .04em; }
+.cost { font: 600 22px/1 var(--f-display); color: var(--bad); white-space: nowrap; }
+.rank { font: 700 13px/1 var(--f-mono); color: var(--bad); margin-right: 8px; }
+dl.kv { display: grid; grid-template-columns: 9.5em 1fr; gap: 6px 14px; margin: 0; }
+dl.kv dt { font: 600 11px/1.9 var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+dl.kv dd { margin: 0; min-width: 0; }
+dd.action { font-weight: 600; }
+.assume { color: var(--warn); font-style: italic; }
+@media (max-width: 560px) { dl.kv { grid-template-columns: 1fr; gap: 2px; } dl.kv dd { margin-bottom: 8px; } }
+
+.tbl { overflow-x: auto; border: 1px solid var(--rule); border-radius: 6px; background: var(--panel); }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { padding: 7px 10px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--rule-2); }
+th { font: 600 11px/1.3 var(--f-mono); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); background: var(--panel); position: sticky; top: 0; }
+td { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+th:first-child, td:first-child, td.l, th.l { text-align: left; }
+tr.me td { background: color-mix(in srgb, var(--s1) 12%, transparent); font-weight: 600; }
+tr.mate td { background: color-mix(in srgb, var(--s2) 10%, transparent); }
+.pill { display: inline-block; font: 600 11px/1 var(--f-mono); padding: 3px 6px; border-radius: 3px; }
+.pill.bad { background: var(--bad-bg); color: var(--bad); } .pill.good { background: var(--good-bg); color: var(--good); } .pill.warn { background: var(--warn-bg); color: var(--warn); }
+.tyre { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; border: 3px solid var(--tyre-h); font: 700 10px/1 var(--f-mono); color: var(--ink); }
+.tyre.S { border-color: var(--tyre-s); } .tyre.M { border-color: var(--tyre-m); } .tyre.H { border-color: var(--tyre-h); }
+.tyre.I { border-color: var(--tyre-i); } .tyre.W { border-color: var(--tyre-w); }
+
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
+.lesson { display: grid; gap: 8px; }
+.task { border: 2px solid var(--accent); border-radius: 8px; padding: 20px; background: var(--panel); display: grid; gap: 10px; }
+.task h3 { color: var(--accent); }
+ul.plain { margin: 0; padding-left: 1.1em; display: grid; gap: 6px; max-width: 72ch; }
+.tip { position: fixed; pointer-events: none; background: var(--ink); color: var(--bg); font: 12px/1.45 var(--f-mono); padding: 7px 9px; border-radius: 4px; z-index: 20; max-width: 280px; white-space: pre-line; }
+.tele { display: grid; gap: 10px; }
+.tele-title { font: 600 13px/1.3 var(--f-mono); color: var(--ink-2); }
+a { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+
+<script id="race-data" type="application/json">__DATA__</script>
+<script id="race-review" type="application/json">__REVIEW__</script>
+<script id="race-labels" type="application/json">__LABELS__</script>
+
+<div class="wrap" id="app"></div>
+<div class="tip" id="tip" hidden></div>
+
+<script>
+(function () {
+const D = JSON.parse(document.getElementById("race-data").textContent);
+const R = JSON.parse(document.getElementById("race-review").textContent);
+const L = JSON.parse(document.getElementById("race-labels").textContent);
+// Label with {name} placeholders filled from vars
+const f = (key, vars) => String(L[key] ?? key).replace(/\{(\w+)\}/g, (_, k) => vars && vars[k] != null ? vars[k] : "");
+const S = " " + L.unit_s;
+const app = document.getElementById("app");
+const tip = document.getElementById("tip");
+const NS = "http://www.w3.org/2000/svg";
+
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const lapTime = ms => { if (!ms) return "–"; const m = Math.floor(ms / 60000), s = (ms % 60000) / 1000; return m + ":" + s.toFixed(3).padStart(6, "0"); };
+const sgn = (v, d = 1) => v == null ? "–" : (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toFixed(d);
+const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+function svg(tag, attrs, parent) { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; }
+function showTip(evt, text) { tip.textContent = text; tip.hidden = false; const x = Math.min(evt.clientX + 14, innerWidth - tip.offsetWidth - 8); tip.style.left = x + "px"; tip.style.top = (evt.clientY + 14) + "px"; }
+function hideTip() { tip.hidden = true; }
+function section(id, kicker, title) { const s = el("section"); s.id = id; s.appendChild(el("h2", null, `${esc(title)} <span class="k">${esc(kicker)}</span>`)); app.appendChild(s); return s; }
+function legend(items) { return el("div", "legend", items.map(i => `<span><i class="${i.sq ? "sq" : ""}" style="background:var(${i.c})"></i>${esc(i.t)}</span>`).join("")); }
+const tyre = c => c ? `<span class="tyre ${esc(c)}">${esc(c)}</span>` : "";
+
+/* ---------- generic line chart with shared crosshair ---------- */
+function lineChart(opts) {
+  const W = opts.width || 900, H = opts.height || 240, m = Object.assign({ l: 48, r: 16, t: 12, b: 28 }, opts.margin || {});
+  const box = el("div", "chart");
+  const s = svg("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": opts.label || "" });
+  box.appendChild(s);
+  const xs = opts.series.flatMap(se => se.points.map(p => p[0]));
+  const ys = opts.series.flatMap(se => se.points.map(p => p[1])).filter(v => v != null);
+  const x0 = opts.xMin ?? Math.min(...xs), x1 = opts.xMax ?? Math.max(...xs);
+  let y0 = opts.yMin ?? Math.min(...ys), y1 = opts.yMax ?? Math.max(...ys);
+  if (y0 === y1) { y0 -= 1; y1 += 1; }
+  const X = v => m.l + (v - x0) / (x1 - x0) * (W - m.l - m.r);
+  const Y = v => opts.invert ? m.t + (v - y0) / (y1 - y0) * (H - m.t - m.b) : H - m.b - (v - y0) / (y1 - y0) * (H - m.t - m.b);
+  const g = svg("g", {}, s);
+  (opts.yTicks || niceTicks(y0, y1, 5)).forEach(v => {
+    svg("line", { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v), stroke: "var(--rule-2)", "stroke-width": 1 }, g);
+    const t = svg("text", { x: m.l - 6, y: Y(v) + 4, "text-anchor": "end" }, g); t.textContent = (opts.yFmt || (v => v))(v);
+  });
+  if (opts.zero != null) svg("line", { x1: m.l, x2: W - m.r, y1: Y(opts.zero), y2: Y(opts.zero), stroke: "var(--ink-3)", "stroke-width": 1 }, g);
+  (opts.xTicks || niceTicks(x0, x1, 8)).forEach(v => {
+    const t = svg("text", { x: X(v), y: H - 8, "text-anchor": "middle" }, g); t.textContent = (opts.xFmt || (v => v))(v);
+  });
+  (opts.bands || []).forEach(b => {
+    svg("rect", { x: X(b.from), y: m.t, width: Math.max(1, X(b.to) - X(b.from)), height: H - m.t - m.b, fill: b.fill || "var(--rule-2)", opacity: b.opacity ?? 1 }, g);
+    if (b.label) { const t = svg("text", { x: X(b.from) + 4, y: m.t + 12 }, g); t.textContent = b.label; }
+  });
+  opts.series.forEach(se => {
+    let d = "", pen = false;
+    se.points.forEach(p => { if (p[1] == null) { pen = false; return; } d += (pen ? "L" : "M") + X(p[0]).toFixed(1) + " " + Y(p[1]).toFixed(1); pen = true; });
+    svg("path", { d, fill: "none", stroke: `var(${se.color})`, "stroke-width": se.width || 2, "stroke-dasharray": se.dash || "", "stroke-linejoin": "round", "stroke-linecap": "round" }, g);
+  });
+  (opts.marks || []).forEach(mk => {
+    svg("line", { x1: X(mk.x), x2: X(mk.x), y1: m.t, y2: H - m.b, stroke: `var(${mk.color || "--bad"})`, "stroke-width": 1, "stroke-dasharray": "3 3" }, g);
+    const t = svg("text", { x: X(mk.x) + 4, y: m.t + 11 + (mk.row || 0) * 13 }, g); t.textContent = mk.label; t.style.fill = `var(${mk.color || "--bad"})`;
+  });
+  const cross = svg("line", { y1: m.t, y2: H - m.b, stroke: "var(--ink-3)", "stroke-width": 1, visibility: "hidden" }, s);
+  const dots = opts.series.map(se => svg("circle", { r: 4, fill: `var(${se.color})`, stroke: "var(--panel)", "stroke-width": 2, visibility: "hidden" }, s));
+  const hit = svg("rect", { x: m.l, y: 0, width: W - m.l - m.r, height: H, fill: "transparent" }, s);
+  hit.addEventListener("pointermove", evt => {
+    const r = s.getBoundingClientRect(); const vx = x0 + ((evt.clientX - r.left) / r.width * W - m.l) / (W - m.l - m.r) * (x1 - x0);
+    let lines = [(opts.xName || "") + " " + (opts.xFmt || (v => v))(nearestX(opts.series[0].points, vx))];
+    opts.series.forEach((se, i) => {
+      const p = nearest(se.points, vx);
+      if (!p || p[1] == null) { dots[i].setAttribute("visibility", "hidden"); return; }
+      dots[i].setAttribute("cx", X(p[0])); dots[i].setAttribute("cy", Y(p[1])); dots[i].setAttribute("visibility", "visible");
+      lines.push(se.name + ": " + (opts.tipFmt || (v => v))(p[1], se, p));
+    });
+    const p0 = nearest(opts.series[0].points, vx); if (p0) { cross.setAttribute("x1", X(p0[0])); cross.setAttribute("x2", X(p0[0])); cross.setAttribute("visibility", "visible"); }
+    if (opts.extraTip) { const extra = opts.extraTip(p0 && p0[0]); if (extra) lines.push(extra); }
+    showTip(evt, lines.join("\n"));
+  });
+  hit.addEventListener("pointerleave", () => { hideTip(); cross.setAttribute("visibility", "hidden"); dots.forEach(d => d.setAttribute("visibility", "hidden")); });
+  return box;
+}
+function nearest(points, x) { let best = null, bd = Infinity; for (const p of points) { const d = Math.abs(p[0] - x); if (d < bd) { bd = d; best = p; } } return best; }
+function nearestX(points, x) { const p = nearest(points, x); return p ? p[0] : x; }
+function niceTicks(a, b, n) {
+  const span = b - a, raw = span / n, mag = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / mag;
+  const step = (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * mag; const out = [];
+  for (let v = Math.ceil(a / step) * step; v <= b + 1e-9; v += step) out.push(+v.toFixed(6));
+  return out;
+}
+
+/* ---------- header ---------- */
+const meta = D.meta;
+const me = D.classification.find(c => c.player) || {};
+const head = el("header");
+head.appendChild(el("div", "eyebrow", esc(f("eyebrow", { track: meta.track, date: R.date || "" }))));
+head.appendChild(el("h1", null, esc(R.title)));
+head.appendChild(el("p", "lede", esc(R.headline)));
+const tc = [L.off, L.tc_medium, L.tc_full][meta.assists.tc] ?? meta.assists.tc;
+const gearbox = L["gearbox_" + meta.assists.gearbox] ?? meta.assists.gearbox;
+head.appendChild(el("div", "chips", [
+  `${meta.team}`, f("chip_laps", { n: meta.total_laps }), f("chip_ai", { n: meta.ai }), meta.online ? L.online : L.offline,
+  `TC ${tc}`, `ABS ${meta.assists.abs ? L.on : L.off}`, f("chip_gearbox", { gearbox }), `ERS ${meta.assists.ers ? L.ers_auto : L.ers_manual}`,
+  meta.assists.equal_cars ? L.equal_cars : L.unequal_cars,
+].map(t => `<span class="chip">${esc(t)}</span>`).join("")));
+app.appendChild(head);
+
+if (R.tiles && R.tiles.length) {
+  const t = el("div", "tiles");
+  R.tiles.forEach(x => t.appendChild(el("div", "tile " + (x.tone || ""), `<span class="l">${esc(x.label)}</span><span class="v">${esc(x.value)}</span><span class="n">${esc(x.note || "")}</span>`)));
+  app.appendChild(t);
+}
+
+/* ---------- 1. summary ---------- */
+{
+  const s = section("summary", "01", L.s01);
+  (R.summary || []).forEach(p => s.appendChild(el("p", "lede", esc(p))));
+}
+
+/* ---------- 2. race story ---------- */
+{
+  const s = section("story", "02", L.s02);
+  if (R.story) s.appendChild(el("p", "muted", esc(R.story)));
+  const laps = D.laps.filter(l => l.ms);
+  const marks = (R.marks || []).map((mk, i) => ({ x: mk.lap, label: mk.label, color: mk.tone === "good" ? "--good" : "--bad", row: i % 3 }));
+
+  // positions
+  const mates = D.classification.filter(c => c.mate);
+  const posSeries = [{ name: L.you, color: "--s1", width: 2.5, points: laps.map(l => [l.lap, l.pos]) }];
+  mates.forEach(m => posSeries.push({ name: L.teammate, color: "--s2", points: Object.keys(D.positions).map(k => [+k, D.positions[k][m.car] ?? null]) }));
+  const p1 = el("div", "panel");
+  p1.appendChild(el("h3", null, esc(L.positions_title)));
+  p1.appendChild(legend(posSeries.map(se => ({ c: se.color, t: se.name }))));
+  p1.appendChild(lineChart({ series: posSeries, invert: true, yMin: 1, yMax: 20, yTicks: [1, 5, 10, 15, 20], yFmt: v => "P" + v, xName: L.lap_axis, marks, height: 230, tipFmt: v => "P" + v, label: L.positions_title }));
+  s.appendChild(p1);
+
+  // lap delta to field (bars)
+  const p2 = el("div", "panel");
+  p2.appendChild(el("h3", null, esc(L.field_delta_title)));
+  p2.appendChild(el("p", "small", esc(L.field_delta_note)));
+  p2.appendChild(barChart(laps));
+  s.appendChild(p2);
+
+  // gaps
+  if (D.gaps.length) {
+    const cols = ["--s2", "--s3", "--s4"];
+    const series = D.gaps.map((g, i) => ({ name: `${g.kind ? f("gap_" + g.kind, { n: g.places }) : g.label} (${g.name}, P${g.pos})`, color: cols[i % 3], points: g.gap_s.map((v, k) => [k + 1, v]) }));
+    const p3 = el("div", "panel");
+    p3.appendChild(el("h3", null, esc(L.gaps_title)));
+    p3.appendChild(el("p", "small", esc(L.gaps_note)));
+    p3.appendChild(legend(series.map(se => ({ c: se.color, t: se.name }))));
+    p3.appendChild(lineChart({ series, zero: 0, xName: L.lap_axis, marks, height: 240, tipFmt: v => sgn(v, 1) + S, yFmt: v => v + S, label: L.gaps_aria }));
+    s.appendChild(p3);
+  }
+}
+
+function barChart(laps) {
+  const W = 900, H = 240, m = { l: 48, r: 16, t: 22, b: 28 }, lim = 5;
+  const box = el("div", "chart"); const s = svg("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": L.field_delta_aria }); box.appendChild(s);
+  const n = laps.length, bw = (W - m.l - m.r) / n;
+  const Y = v => m.t + (lim - v) / (2 * lim) * (H - m.t - m.b);
+  [-4, -2, 0, 2, 4].forEach(v => {
+    svg("line", { x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v), stroke: v === 0 ? "var(--ink-3)" : "var(--rule-2)" }, s);
+    svg("text", { x: m.l - 6, y: Y(v) + 4, "text-anchor": "end" }, s).textContent = sgn(v, 0) + S;
+  });
+  laps.forEach((l, i) => {
+    const x = m.l + i * bw;
+    if (l.lap % 5 === 0 || l.lap === 1) svg("text", { x: x + bw / 2, y: H - 8, "text-anchor": "middle" }, s).textContent = l.lap;
+    const v = l.to_field_ms == null ? null : l.to_field_ms / 1000;
+    if (v == null) return;
+    const c = Math.max(-lim, Math.min(lim, v));
+    const y = Math.min(Y(0), Y(c)), h = Math.max(1, Math.abs(Y(c) - Y(0)));
+    const fill = { S: "--tyre-s", M: "--tyre-m", H: "--tyre-h", I: "--tyre-i", W: "--tyre-w" }[l.compound] || "--ink-3";
+    const r = svg("rect", { x: x + 1, y, width: Math.max(2, bw - 2), height: h, rx: 2, fill: `var(${fill})`, opacity: l.clean ? 1 : .55 }, s);
+    if (Math.abs(v) > lim) svg("text", { x: x + bw / 2, y: v > 0 ? m.t - 6 : H - m.b + 12, "text-anchor": "middle" }, s).textContent = sgn(v, 0);
+    const hit = svg("rect", { x, y: m.t, width: bw, height: H - m.t - m.b, fill: "transparent" }, s);
+    const extra = (l.pit ? L.pits_mark : "") + (l.contacts ? f("contacts_mark", { n: l.contacts }) : "");
+    hit.addEventListener("pointermove", e => showTip(e, f("bar_tip", { lap: l.lap, time: lapTime(l.ms), delta: sgn(v, 2), pos: l.pos, tyre: `${l.compound}${l.age}`, extra, clean: l.clean ? L.clean : L.not_clean })));
+    hit.addEventListener("pointerleave", hideTip);
+  });
+  return box;
+}
+
+/* ---------- 3. good ---------- */
+{
+  const s = section("good", "03", L.s03);
+  const c = el("div", "cards");
+  (R.good || []).forEach(g => {
+    const card = el("div", "card good");
+    card.appendChild(el("div", "card-head", `<h3>${esc(g.title)}</h3><span class="when">${esc(g.when || "")}</span>`));
+    card.appendChild(el("dl", "kv", `<dt>${esc(L.good_what)}</dt><dd>${esc(g.what)}</dd><dt>${esc(L.good_why)}</dt><dd>${esc(g.why)}</dd>${g.keep ? `<dt>${esc(L.good_keep)}</dt><dd class="action">${esc(g.keep)}</dd>` : ""}`));
+    c.appendChild(card);
+  });
+  s.appendChild(c);
+}
+
+/* ---------- 4. bad ---------- */
+{
+  const s = section("bad", "04", L.s04);
+  if (R.bad_intro) s.appendChild(el("p", "muted", esc(R.bad_intro)));
+  const c = el("div", "cards");
+  (R.bad || []).forEach((b, i) => {
+    const card = el("div", "card bad");
+    card.appendChild(el("div", "card-head", `<h3><span class="rank">${i + 1}</span>${esc(b.title)}</h3><span class="cost">${esc(b.cost)}</span>`));
+    card.appendChild(el("div", "when", esc(b.when)));
+    card.appendChild(el("dl", "kv",
+      `<dt>${esc(L.bad_what)}</dt><dd>${esc(b.what)}</dd>` +
+      `<dt>${esc(L.bad_why)}</dt><dd>${esc(b.why)}${b.assumption ? ` <span class="assume">${esc(L.bad_assumption)} ${esc(b.assumption)}</span>` : ""}</dd>` +
+      (b.cost_note ? `<dt>${esc(L.bad_cost)}</dt><dd>${esc(b.cost_note)}</dd>` : "") +
+      `<dt>${esc(L.bad_action)}</dt><dd class="action">${esc(b.action)}</dd>`));
+    if (b.window != null && D.windows[b.window]) card.appendChild(teleBlock(D.windows[b.window], b.window_note));
+    c.appendChild(card);
+  });
+  s.appendChild(c);
+}
+
+function teleBlock(w, note) {
+  const box = el("div", "tele");
+  box.appendChild(el("div", "tele-title", esc(f("tele_title", { label: w.label, lap: w.lap, ref: w.ref_lap, start: w.start, end: w.end }))));
+  if (note) box.appendChild(el("p", "small", esc(note)));
+  box.appendChild(legend([{ c: "--s2", t: f("tele_lap", { lap: w.lap }) }, { c: "--s1", t: f("tele_ref", { lap: w.ref_lap }) }]));
+  const lapRows = w.data.lap || [], refRows = w.data.ref || [];
+  const rows = [
+    { k: 1, name: L.tele_speed, fmt: v => Math.round(v) },
+    { k: 2, name: L.tele_throttle, scale: 100, fmt: v => Math.round(v), min: 0, max: 100 },
+    { k: 3, name: L.tele_brake, scale: 100, fmt: v => Math.round(v), min: 0, max: 100 },
+    { k: 4, name: L.tele_steer, fmt: v => v.toFixed(2), min: -1, max: 1, zero: 0 },
+    { k: 5, name: L.tele_slip, fmt: v => v.toFixed(2), min: 0 },
+  ];
+  rows.forEach(r => {
+    const sc = r.scale || 1;
+    const series = [
+      { name: f("tele_lap", { lap: w.lap }), color: "--s2", points: lapRows.map(p => [p[0], p[r.k] == null ? null : p[r.k] * sc]) },
+      { name: f("tele_lap", { lap: w.ref_lap }), color: "--s1", points: refRows.map(p => [p[0], p[r.k] == null ? null : p[r.k] * sc]) },
+    ];
+    let yMax = r.max; if (r.k === 5) yMax = Math.max(0.3, Math.min(1.5, Math.max(...series.flatMap(se => se.points.map(p => p[1] ?? 0)))));
+    const wrap = el("div");
+    wrap.appendChild(el("div", "small", esc(r.name)));
+    wrap.appendChild(lineChart({ series, height: 120, yMin: r.min, yMax, zero: r.zero, xName: L.unit_m, xFmt: v => Math.round(v), tipFmt: v => r.fmt(v),
+      yTicks: r.k === 4 ? [-1, 0, 1] : undefined, yFmt: v => r.k === 4 ? v : Math.round(v * 100) / 100, margin: { t: 6, b: 22 },
+      marks: (w.marks || []), label: r.name,
+      extraTip: x => { const p = nearest(lapRows, x); return p ? f("tele_gear", { gear: p[6] == null ? "–" : Math.round(p[6]) }) : ""; } }));
+    box.appendChild(wrap);
+  });
+  return box;
+}
+
+/* ---------- 5. track map ---------- */
+{
+  const s = section("map", "05", L.s05);
+  s.appendChild(el("p", "muted", esc(L.map_note)));
+  const p = el("div", "panel");
+  p.appendChild(trackMap());
+  p.appendChild(legend([{ c: "--s1", t: L.map_slow }, { c: "--s4", t: L.map_fast }, { c: "--bad", t: L.map_episode, sq: true }, { c: "--ink-3", t: L.map_corner, sq: true }]));
+  s.appendChild(p);
+}
+
+function trackMap() {
+  const T = D.track; const box = el("div", "chart");
+  if (!T.length) return box;
+  const xs = T.map(p => p[0]), zs = T.map(p => p[1]);
+  const minX = Math.min(...xs), maxX = Math.max(...xs), minZ = Math.min(...zs), maxZ = Math.max(...zs);
+  const pad = 60, W = 900, sc = (W - 2 * pad) / Math.max(maxX - minX, maxZ - minZ), H = (maxZ - minZ) * sc + 2 * pad, Wd = (maxX - minX) * sc + 2 * pad;
+  const X = x => pad + (x - minX) * sc, Z = z => pad + (z - minZ) * sc;
+  const s = svg("svg", { viewBox: `0 0 ${Wd} ${H}`, role: "img", "aria-label": L.map_aria }); box.appendChild(s);
+  s.style.minWidth = "520px"; s.style.maxHeight = "640px";
+  const speeds = T.map(p => p[2]), vmin = Math.min(...speeds), vmax = Math.max(...speeds);
+  const c1 = css("--s1"), c2 = css("--s4");
+  const mix = t => { const a = hex(c1), b = hex(c2); return `rgb(${a.map((v, i) => Math.round(v + (b[i] - v) * t)).join(",")})`; };
+  svg("path", { d: T.map((p, i) => (i ? "L" : "M") + X(p[0]).toFixed(1) + " " + Z(p[1]).toFixed(1)).join("") + "Z", fill: "none", stroke: "var(--rule)", "stroke-width": 14, "stroke-linejoin": "round" }, s);
+  for (let i = 0; i < T.length; i++) {
+    const a = T[i], b = T[(i + 1) % T.length];
+    svg("line", { x1: X(a[0]), y1: Z(a[1]), x2: X(b[0]), y2: Z(b[1]), stroke: mix((a[2] - vmin) / (vmax - vmin)), "stroke-width": 5, "stroke-linecap": "round" }, s);
+  }
+  // start/finish
+  svg("circle", { cx: X(T[0][0]), cy: Z(T[0][1]), r: 6, fill: "var(--ink)" }, s);
+  svg("text", { x: X(T[0][0]) + 10, y: Z(T[0][1]) - 8 }, s).textContent = L.map_start;
+  const maxLoss = Math.max(...D.corners.map(c => c.loss_ms || 0), 1);
+  D.corners.forEach(c => {
+    const r = 9 + 14 * (c.loss_ms || 0) / maxLoss;
+    const g = svg("g", {}, s);
+    svg("circle", { cx: X(c.x), cy: Z(c.z), r, fill: "var(--panel)", stroke: "var(--ink-2)", "stroke-width": 2 }, g);
+    svg("text", { x: X(c.x), y: Z(c.z) + 4, "text-anchor": "middle" }, g).textContent = "T" + c.n;
+    const lab = svg("text", { x: X(c.x) + r + 4, y: Z(c.z) + 4 }, g); lab.textContent = "−" + ((c.loss_ms || 0) / 1000).toFixed(2) + S;
+    g.addEventListener("pointermove", e => showTip(e, f("map_tip", { n: c.n, apex: c.apex, speed: c.min_speed, loss: (c.loss_ms / 1000).toFixed(2), spread: (c.spread_ms / 1000).toFixed(2) })));
+    g.addEventListener("pointerleave", hideTip);
+  });
+  (R.map_marks || []).forEach(mk => {
+    const i = Math.round(mk.dist / 10) % T.length; const p = T[i]; if (!p) return;
+    const x = X(p[0]), y = Z(p[1]);
+    const g = svg("g", {}, s);
+    svg("path", { d: `M${x - 7} ${y - 7}L${x + 7} ${y + 7}M${x + 7} ${y - 7}L${x - 7} ${y + 7}`, stroke: "var(--bad)", "stroke-width": 3.5, "stroke-linecap": "round" }, g);
+    const t = svg("text", { x: x + (mk.dx ?? 12), y: y + (mk.dy ?? -10), "text-anchor": mk.anchor || "start" }, g); t.textContent = mk.label; t.style.fill = "var(--bad)"; t.style.fontWeight = 600;
+  });
+  return box;
+}
+function hex(c) { c = c.replace("#", ""); if (c.length === 3) c = c.split("").map(x => x + x).join(""); return [0, 2, 4].map(i => parseInt(c.slice(i, i + 2), 16)); }
+
+/* ---------- 6. corners ---------- */
+{
+  const s = section("corners", "06", L.s06);
+  if (R.corners_text) s.appendChild(el("p", "muted", esc(R.corners_text)));
+  const rows = [...D.corners].sort((a, b) => (b.loss_ms || 0) - (a.loss_ms || 0));
+  const d = (a, b) => a == null || b == null ? "–" : sgn(a - b, 0);
+  const t = el("div", "tbl");
+  t.innerHTML = `<table><thead><tr>${L.corners_head.map((h, i) => `<th${i ? "" : ' class="l"'}>${esc(h)}</th>`).join("")}</tr></thead><tbody>` +
+    rows.map(c => `<tr><td>T${c.n}</td><td>${c.apex}</td><td>${c.min_speed}</td><td>${(c.loss_ms / 1000).toFixed(2)}${S}</td><td>${(c.spread_ms / 1000).toFixed(2)}${S}</td>` +
+      `<td>${d(c.slow.brake_dist, c.fast.brake_dist)}</td><td>${d(c.slow.min_speed, c.fast.min_speed)}</td><td>${d(c.slow.throttle_dist, c.fast.throttle_dist)}</td><td>${d(c.slow.exit_speed, c.fast.exit_speed)}</td><td>${c.wheelspin_laps.length}</td></tr>`).join("") +
+    `</tbody></table>`;
+  s.appendChild(t);
+  s.appendChild(el("p", "small", esc(L.corners_note)));
+}
+
+/* ---------- 7. tyres, strategy, energy ---------- */
+{
+  const s = section("strategy", "07", L.s07);
+  (R.strategy || []).forEach(x => { const b = el("div", "lesson"); b.appendChild(el("h3", null, esc(x.title))); b.appendChild(el("p", null, esc(x.text))); s.appendChild(b); });
+  const t = el("div", "tbl");
+  t.innerHTML = `<table><thead><tr>${L.stints_head.map((h, i) => `<th${i < 2 ? ' class="l"' : ""}>${esc(h)}</th>`).join("")}</tr></thead><tbody>` +
+    D.stints.map(st => `<tr><td>${esc(f("stint_laps", { first: st.first, last: st.last }))}</td><td class="l">${tyre(st.compound)}</td><td>${st.clean}</td><td>${lapTime(st.median_ms)}</td><td>${sgn(st.field_slope_ms, 0)}</td><td>${st.wear_per_lap.map(w => w.toFixed(1)).join("  ")}</td></tr>`).join("") + `</tbody></table>`;
+  s.appendChild(t);
+  const two = el("div", "two");
+  const laps = D.laps.filter(l => l.wear && l.wear.length === 4);
+  const wear = el("div", "panel");
+  wear.appendChild(el("h3", null, esc(L.wear_title)));
+  const ws = [["FL", "--s1"], ["FR", "--s3"], ["RL", "--s2"], ["RR", "--s4"]].map(([n, c], i) => ({ name: n, color: c, points: laps.map(l => [l.lap, l.wear[i]]) }));
+  wear.appendChild(legend(ws.map(w => ({ c: w.color, t: w.name }))));
+  wear.appendChild(lineChart({ series: ws, height: 220, yMin: 0, xName: L.lap_axis, tipFmt: v => v + "%", yFmt: v => v + "%", label: L.wear_aria }));
+  two.appendChild(wear);
+  const ers = el("div", "panel");
+  ers.appendChild(el("h3", null, esc(L.ers_title)));
+  ers.appendChild(legend([{ c: "--s3", t: L.ers_legend }]));
+  ers.appendChild(lineChart({ series: [{ name: L.ers_series, color: "--s3", points: D.laps.map(l => [l.lap, l.ers_end]) }], height: 220, yMin: 0, yMax: 100, xName: L.lap_axis, tipFmt: v => v + "%", yFmt: v => v + "%", label: "ERS" }));
+  two.appendChild(ers);
+  s.appendChild(two);
+}
+
+/* ---------- 8. field ---------- */
+{
+  const s = section("field", "08", L.s08);
+  if (R.field_text) s.appendChild(el("p", "muted", esc(R.field_text)));
+  const two = el("div", "two");
+  const ft = el("div", "tbl");
+  ft.innerHTML = `<table><thead><tr>${L.field_head.map((h, i) => `<th${i === 1 ? ' class="l"' : ""}>${esc(h)}</th>`).join("")}</tr></thead><tbody>` +
+    D.field.map((r, i) => `<tr class="${r.player ? "me" : r.mate ? "mate" : ""}"><td>${i + 1}</td><td class="l">${esc(r.player ? L.you_caps : r.mate ? L.teammate : r.name)}</td><td>${lapTime(r.median_ms)}</td><td>${lapTime(r.best_ms)}</td></tr>`).join("") + `</tbody></table>`;
+  const c = el("div", "tbl");
+  c.innerHTML = `<table><thead><tr>${L.classification_head.map((h, i) => `<th${i === 1 ? ' class="l"' : ""}>${esc(h)}</th>`).join("")}</tr></thead><tbody>` +
+    D.classification.map(r => `<tr class="${r.player ? "me" : r.mate ? "mate" : ""}"><td>P${r.pos}</td><td class="l">${esc(r.player ? L.you_caps : r.mate ? L.teammate : r.name)}</td><td>P${r.grid}</td><td>${r.laps}</td><td>${r.stops}</td></tr>`).join("") + `</tbody></table>`;
+  two.appendChild(ft); two.appendChild(c); s.appendChild(two);
+}
+
+/* ---------- 9. lessons ---------- */
+{
+  const s = section("learn", "09", L.s09);
+  const two = el("div", "two");
+  (R.lessons || []).forEach(x => { const b = el("div", "card lesson"); b.appendChild(el("h3", null, esc(x.title))); b.appendChild(el("p", null, esc(x.text))); if (x.drill) b.appendChild(el("p", "muted", esc(L.drill) + esc(x.drill))); two.appendChild(b); });
+  s.appendChild(two);
+}
+
+/* ---------- 10. task ---------- */
+if (R.task) {
+  const s = section("task", "10", L.s10);
+  const b = el("div", "task");
+  b.appendChild(el("h3", null, esc(R.task.title)));
+  b.appendChild(el("p", null, esc(R.task.text)));
+  b.appendChild(el("p", "muted", esc(L.check) + esc(R.task.check)));
+  s.appendChild(b);
+}
+
+/* ---------- 11. data notes ---------- */
+{
+  const s = section("data", "11", L.s11);
+  const ul = el("ul", "plain");
+  [f("data_note", { file: meta.file, minutes: meta.minutes, ref: meta.ref_lap }), ...(R.caveats || [])].forEach(c => ul.appendChild(el("li", "small", esc(c))));
+  s.appendChild(ul);
+}
+})();
+</script>

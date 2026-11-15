@@ -1,0 +1,25 @@
+# Personal files, not part of the project: notes, hardware, settings
+local/
+
+# Claude Code: only the skills are shared
+.claude/*
+!.claude/skills/
+
+# Race recordings and reports
+races/
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# Build
+build/
+
+# Editors and OS
+.idea/
+.vscode/
+Thumbs.db
+desktop.ini
+.DS_Store
