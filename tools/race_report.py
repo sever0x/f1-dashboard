@@ -6,7 +6,7 @@
     py -3 tools/race_report.py --list       all recordings
     py -3 tools/race_report.py FILE         a specific recording
 
-Output in races/reports/<recording name>/: report.md, laps.csv, corners.csv.
+Output in races/reports/<track>_<sessionType>_<date>_<HH-MM>/: report.md, laps.csv, corners.csv.
 Only measurements here. How to write a critique from them: docs/RACE_REVIEW.md.
 
 Fields follow the EA F1 25 UDP specification v3. Standard library only.
@@ -19,6 +19,7 @@ import csv
 import datetime
 import math
 import pathlib
+import re
 import statistics
 import struct
 import sys
@@ -1256,12 +1257,34 @@ def choose(directory: pathlib.Path, any_session: bool) -> Optional[pathlib.Path]
     return None
 
 
+def report_name(race: Race, path: pathlib.Path) -> str:
+    """Folder name: track_sessionType_date_HH-MM, for example Las_Vegas_race_2026-11-15_21-30."""
+    s = race.session
+    track = TRACKS.get(s.get("track"), f"track_{s.get('track')}")
+    track = re.sub(r"[^\w-]+", "_", track).strip("_")
+    kind = s.get("kind")
+    if kind in RACE_SESSIONS:
+        session = "race"
+    elif kind == 18:
+        session = "time_trial"
+    elif kind in (1, 2, 3, 4):
+        session = "practice"
+    elif kind in range(5, 15):
+        session = "qualifying"
+    else:
+        session = "unknown"
+    if race.first_wall:
+        date = datetime.datetime.fromtimestamp(race.first_wall).strftime("%Y-%m-%d_%H-%M")
+    else:
+        date = path.name[:16]  # recording names start with YYYY-MM-DD_HH-MM-SS
+    return f"{track}_{session}_{date}"
+
+
 def build(path, directory: Optional[pathlib.Path] = None) -> pathlib.Path:
     path = pathlib.Path(path)
     race = load(path)
     result = analyze(race)
-    name = path.name[:-len(".f1rec.gz")]
-    target = directory or (path.parent / "reports" / name)
+    target = directory or (path.parent / "reports" / report_name(race, path))
     target.mkdir(parents=True, exist_ok=True)
     (target / "report.md").write_text(render(race, result), encoding="utf-8")
     write_csv(result, target)
