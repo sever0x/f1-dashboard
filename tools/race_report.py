@@ -88,7 +88,11 @@ INFRINGEMENTS = {
     27: "Ran wide, minor time gain", 28: "Ran wide, significant time gain", 29: "Ran wide, extreme time gain",
     30: "Lap invalidated, wall riding", 31: "Lap invalidated, flashback", 32: "Lap invalidated, reset to track",
     33: "Blocking pit lane", 34: "Jump start", 35: "Safety car collision", 36: "Safety car illegal overtake",
-    37: "Safety car pace exceeded",
+    37: "Safety car pace exceeded", 38: "Virtual safety car pace exceeded", 39: "Formation lap below speed",
+    40: "Formation lap parking", 41: "Retired, mechanical failure", 42: "Retired, terminally damaged",
+    43: "Safety car fell too far back", 44: "Black flag timer", 45: "Unserved stop go", 46: "Unserved drive through",
+    47: "Engine component change", 48: "Gearbox change", 49: "Parc ferme change", 50: "League grid penalty",
+    51: "Retry penalty", 52: "Illegal time gain", 53: "Mandatory pit stop", 54: "Attribute assigned",
 }
 OFF_TRACK_SURFACES = {3, 4, 5, 6, 7, 8}  # rumble strips, gravel, mud, sand, grass, water
 
