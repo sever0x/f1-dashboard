@@ -316,13 +316,20 @@ class CarTracker:
                 return item.encode()
         return None
 
-    def _start_session(self, uid: int) -> None:
+    def _start_session(self, uid: Optional[int]) -> None:
         self._session_uid = uid
         self._alert = None
         self._safety_car = SAFETY_CAR_NONE
         self._pit_called_for_lap = None
         self._lap = None
         self._pit_status = 0
+        self._wear = None
+        self._temperature = None
+        self._compound = None
+        self._age_laps = 0
+        self._ers_joules = None
+        self._ers_mode = 0
+        self._total_laps = 0
 
     def _show_alert(self, screen: TextScreen) -> None:
         self._alert = screen
@@ -527,6 +534,9 @@ def run_game(link: NanoLink, recorder: Optional[Recorder] = None) -> None:
 
             now = time.monotonic()
             last_packet = now
+            if warned_no_data:
+                print("\nConnection to the game restored.")
+                tracker._start_session(None)
             warned_no_data = False
 
             fmt = packet_format(data)
