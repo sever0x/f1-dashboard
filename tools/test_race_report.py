@@ -505,6 +505,7 @@ def session_packet(uid, kind):
 
 
 record.END_GRACE_SECONDS = 0.2
+record.MIN_USEFUL_PACKETS = 1
 auto = record.Recorder(tmp / "auto")
 auto.start()
 before_session = header(6, 0.0, 1, uid=20) + telemetry_body
@@ -535,6 +536,14 @@ all_mode.start()
 all_mode.add(session_packet(40, 8))
 all_mode.close()
 assert len(all_mode.paths) == 1, "with the flag qualifying is recorded too"
+
+record.MIN_USEFUL_PACKETS = 5
+too_short = record.Recorder(tmp / "too_short", all_sessions=True)
+too_short.start()
+too_short.add(session_packet(50, 15))
+too_short.close()
+assert len(too_short.paths) == 0, "session with fewer than MIN_USEFUL_PACKETS is deleted"
+record.MIN_USEFUL_PACKETS = record.MIN_USEFUL_PACKETS  # reset
 
 # --- Filtering: the analysis reaches the same conclusions with much less data
 thin = record.PacketFilter()

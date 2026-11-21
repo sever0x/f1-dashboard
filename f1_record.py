@@ -39,8 +39,13 @@ PID_MOTION, PID_SESSION, PID_LAP, PID_EVENT, PID_PARTICIPANTS, PID_SETUPS, PID_T
 PID_FINAL, PID_LOBBY, PID_DAMAGE, PID_HISTORY, PID_TYRE_SETS, PID_MOTION_EX, PID_TIME_TRIAL, PID_LAP_POSITIONS = range(8, 16)
 SESSION_PACKET_SIZE = 753
 SESSION_TYPE_OFFSET = HEADER_SIZE + 6
+EVENT_CODE_END = HEADER_SIZE + 4  # 4 bytes is the length of the event code (m_eventStringCode)
+EVENT_SESSION_STARTED = b"SSTA"
+EVENT_BUTTON_STATUS = b"BUTN"
 RACE_SESSIONS = {15, 16, 17}
 END_GRACE_SECONDS = 15.0  # after the final classification the game sends the full history of all cars
+INACTIVITY_SECONDS = 10.0  # no packets for this long means the game was closed or crashed
+MIN_USEFUL_PACKETS = 50  # fewer packets means a menu glitch or empty splash, not a real session
 PENDING_PACKETS = 2000  # while the session type is unknown; the Session packet arrives 2 times per second
 
 # What PacketFilter skips
@@ -62,6 +67,11 @@ def session_uid(data: bytes) -> Optional[int]:
     if len(data) < HEADER_MIN_SIZE:
         return None
     return SESSION_UID.unpack_from(data, SESSION_UID_OFFSET)[0]
+
+
+def event_code(data: bytes) -> bytes:
+    """4-byte event code (m_eventStringCode) of a PID_EVENT packet."""
+    return data[HEADER_SIZE:EVENT_CODE_END]
 
 
 class PacketFilter:
@@ -93,7 +103,7 @@ class PacketFilter:
         if pid == PID_STATUS:
             return data if self._due(pid, t, RIVAL_STATUS_INTERVAL) else self._player_only(pid, data)
         if pid == PID_EVENT:
-            return None if data[HEADER_SIZE:HEADER_SIZE + 4] == b"BUTN" else data
+            return None if event_code(data) == EVENT_BUTTON_STATUS else data
         if pid == PID_FINAL:
             self._final_seen = True
             return data
@@ -141,15 +151,18 @@ class Recorder:
         self._file: Optional[gzip.GzipFile] = None
         self._uid: Optional[int] = None
         self._last_flush = 0.0
+        self._last_packet: Optional[float] = None
         self._failed = False
         self.dropped = 0
         self.written = 0
+        self._file_packets = 0
         self.paths = []
 
     def start(self) -> None:
         self._thread.start()
 
     def add(self, data: bytes) -> None:
+        self._last_packet = time.monotonic()
         try:
             self._queue.put_nowait((time.time(), data))
         except queue.Full:
@@ -169,6 +182,7 @@ class Recorder:
             except queue.Empty:
                 self._flush_if_due()
                 self._finish_if_due()
+                self._check_inactivity()
                 continue
             if item is None:
                 break
@@ -182,7 +196,15 @@ class Recorder:
             self.dropped += 1
             return
         uid = session_uid(data)
-        if not uid or uid in self._closed_uids:  # short packet, menu without a session, not a race, or the race is already recorded
+        if not uid:
+            return
+        if len(data) >= EVENT_CODE_END and data[PACKET_ID_OFFSET] == PID_EVENT:
+            if event_code(data) == EVENT_SESSION_STARTED:  # session restarted in the game
+                self._closed_uids.discard(uid)
+                if self._file is not None and self._uid == uid:
+                    self._close_file()
+                    self._uid = None
+        if uid in self._closed_uids:  # short packet, menu without a session, not a race, or the race is already recorded
             return
         try:
             if uid != self._uid:
@@ -200,18 +222,25 @@ class Recorder:
             print(f"\nTelemetry recording stopped, the dashboard keeps working: {error}", file=sys.stderr)
 
     def _decide(self, uid: int, received: float, data: bytes) -> bool:
-        """Recording starts as soon as it is clear this is a race. Packets that arrived earlier are not lost."""
+        """Recording starts as soon as it is clear this is an active session or race."""
+        is_session = len(data) == SESSION_PACKET_SIZE and data[PACKET_ID_OFFSET] == PID_SESSION
+        kind = data[SESSION_TYPE_OFFSET] if is_session else None
+        if kind == 0:  # menu without an active session
+            self._pending.clear()
+            return False
         if self._all_sessions:
             self._open(uid, received)
+            for item in self._pending:
+                self._store(*item)
+            self._pending.clear()
             return True
-        kind = data[SESSION_TYPE_OFFSET] if len(data) == SESSION_PACKET_SIZE and data[PACKET_ID_OFFSET] == PID_SESSION else 0
         if kind in RACE_SESSIONS:
             self._open(uid, received)
             for item in self._pending:
                 self._store(*item)
             self._pending.clear()
             return True
-        if kind:  # the session is known and it is not a race
+        if kind is not None:  # the session is known and it is not a race
             self._closed_uids.add(uid)
             self._pending.clear()
         else:
@@ -227,6 +256,7 @@ class Recorder:
         self._file.write(RECORD.pack(received, len(kept)))
         self._file.write(kept)
         self.written += 1
+        self._file_packets += 1
 
     def _finish_if_due(self) -> None:
         if self._end_at is None or time.monotonic() < self._end_at:
@@ -237,6 +267,17 @@ class Recorder:
         self._close_file()
         print(f"\nThe race is over, recording saved: {path}")
 
+    def _check_inactivity(self) -> None:
+        if self._last_packet is None or time.monotonic() - self._last_packet < INACTIVITY_SECONDS:
+            return
+        if self._file is not None:
+            path = self.paths[-1] if self.paths else ""
+            self._close_file()
+            print(f"\nLost connection to the game, recording saved: {path}")
+        self._pending.clear()
+        self._filter = PacketFilter()
+        self._end_at = None
+
     def _open(self, uid: int, received: float) -> None:
         self._directory.mkdir(parents=True, exist_ok=True)
         stamp = datetime.datetime.fromtimestamp(received).strftime("%Y-%m-%d_%H-%M-%S")
@@ -244,6 +285,7 @@ class Recorder:
         self._file = gzip.open(path, "wb", compresslevel=GZIP_LEVEL)
         self._file.write(MAGIC)
         self._uid = uid
+        self._file_packets = 0
         self.paths.append(path)
         print(f"\nRecording session: {path}")
 
@@ -261,12 +303,21 @@ class Recorder:
     def _close_file(self) -> None:
         if self._file is None:
             return
+        path = self.paths[-1] if self.paths else None
+        count = self._file_packets
         try:
             self._file.close()
         except OSError as error:
             print(f"\nThe recording file closed with an error: {error}", file=sys.stderr)
         self._file = None
         self._uid = None
+        self._file_packets = 0
+        if path is not None and count < MIN_USEFUL_PACKETS:
+            try:
+                path.unlink(missing_ok=True)
+                self.paths.pop()
+            except OSError:
+                pass
 
 
 def read_packets(path) -> Iterator[Tuple[float, bytes]]:
