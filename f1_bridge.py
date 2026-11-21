@@ -22,6 +22,8 @@ Usage:
     python f1_bridge.py --no-record     no telemetry recording into the races/ folder
     python f1_bridge.py --record-all-sessions    record not only races
     python f1_bridge.py --record-full-packets    record all game packets without filtering
+    python f1_bridge.py --no-nano       without the Nano: web dashboard and recording only
+    python f1_bridge.py --no-web        without the web dashboard (default http://localhost:8025/)
 
 UDP is received in a separate thread: packets for the recording are not lost even if serial hangs or the Nano reconnects.
 """
@@ -40,6 +42,7 @@ import serial
 from serial.tools import list_ports
 
 from f1_record import Recorder
+from f1_state import DashboardState
 
 UDP_HOST = "127.0.0.1"
 UDP_PORT = 20777
@@ -404,6 +407,19 @@ def find_nano_port() -> str:
     )
 
 
+class NoNano:
+    """Stand-in for the Nano with --no-nano."""
+
+    def connect(self) -> bool:
+        return False
+
+    def send(self, line: bytes) -> None:
+        pass
+
+    def close(self) -> None:
+        pass
+
+
 class NanoLink:
     """Serial connection to the Nano that reconnects after the cable is unplugged."""
 
@@ -474,8 +490,9 @@ def receive_packets(
     packets: "queue.Queue[bytes]",
     recorder: Optional[Recorder],
     stop: threading.Event,
+    web_state: Optional[DashboardState] = None,
 ) -> None:
-    """Only receives: the recording gets every packet, the dashboard queue drops the oldest ones when full."""
+    """Only receives: the recording and the web dashboard get every packet, the Nano queue drops the oldest when full."""
     while not stop.is_set():
         try:
             data, _ = sock.recvfrom(4096)
@@ -487,6 +504,8 @@ def receive_packets(
             continue
         if recorder is not None:
             recorder.add(data)
+        if web_state is not None:
+            web_state.update(data)
         while True:
             try:
                 packets.put_nowait(data)
@@ -498,12 +517,13 @@ def receive_packets(
                     pass
 
 
-def run_game(link: NanoLink, recorder: Optional[Recorder] = None) -> None:
+def run_game(link, recorder: Optional[Recorder] = None, web_state: Optional[DashboardState] = None) -> None:
     sock = open_udp_socket()
     print(f"Waiting for telemetry on {UDP_HOST}:{UDP_PORT}. Exit: Ctrl+C.")
     packets: "queue.Queue[bytes]" = queue.Queue(DASHBOARD_QUEUE_PACKETS)
     stop = threading.Event()
-    receiver = threading.Thread(target=receive_packets, args=(sock, packets, recorder, stop), daemon=True)
+    receiver = threading.Thread(target=receive_packets, args=(sock, packets, recorder, stop, web_state),
+                                daemon=True)
     receiver.start()
     link.connect()
 
@@ -658,9 +678,18 @@ def main() -> None:
     parser.add_argument("--no-record", action="store_true", help="do not record telemetry into the races/ folder")
     parser.add_argument("--record-all-sessions", action="store_true", help="record not only races")
     parser.add_argument("--record-full-packets", action="store_true", help="record all game packets without filtering")
+    parser.add_argument("--no-nano", action="store_true", help="run without the Nano: web dashboard and recording")
+    parser.add_argument("--no-web", action="store_true", help="do not start the web dashboard")
+    parser.add_argument("--web-port", type=int, default=8025, help="web dashboard port")
+    parser.add_argument("--web-host", default="127.0.0.1", help="0.0.0.0 to open the dashboard from another device")
     args = parser.parse_args()
 
-    link = NanoLink(args.port)
+    link = NoNano() if args.no_nano else NanoLink(args.port)
+    web_state = web_server = None
+    if not args.demo and not args.no_web:
+        from f1_web import start_server
+        web_state = DashboardState()
+        web_server = start_server(web_state, args.web_host, args.web_port)
     recorder = None
     if not args.demo and not args.no_record:
         recorder = Recorder(all_sessions=args.record_all_sessions, full_packets=args.record_full_packets)
@@ -670,11 +699,13 @@ def main() -> None:
         if args.demo:
             run_demo(link)
         else:
-            run_game(link, recorder)
+            run_game(link, recorder, web_state if web_server is not None else None)
     except KeyboardInterrupt:
         print("\nStopped.")
     finally:
         link.close()
+        if web_server is not None:
+            web_server.close()
         if recorder is not None:
             recorder.close()
 

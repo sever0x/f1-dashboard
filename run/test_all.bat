@@ -3,4 +3,5 @@ title Tests
 cd /d "%~dp0.."
 py -3 tools/test_bridge.py
 py -3 tools/test_race_report.py
+py -3 tools/test_web.py
 pause
