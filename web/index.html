@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>F1 25 Dashboard</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <span class="mode" id="mode">LIVE</span>
+  <span class="session" id="session">Waiting for the game</span>
+  <span class="chip" id="lap" hidden></span>
+  <span class="chip" id="position" hidden></span>
+  <span class="chip sc" id="safety" hidden></span>
+  <span class="spacer"></span>
+  <span class="warn" id="format" hidden></span>
+  <span class="link" id="link"><i></i><b>No data</b></span>
+  <div class="test" id="test" hidden>
+    <button type="button" id="test-toggle" aria-expanded="false">Test ▾</button>
+    <div class="test-menu" id="test-menu" hidden></div>
+  </div>
+  <button type="button" id="reset-layout" title="Put the blocks back in their default places">Reset layout</button>
+</header>
+<main class="grid" id="grid"></main>
+<script src="app.js"></script>
+</body>
+</html>

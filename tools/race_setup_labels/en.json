@@ -1,0 +1,18 @@
+{
+  "decimal": ".",
+  "changed": "differs from the base",
+  "base_prefix": "Base",
+  "fuel_laps": "Race laps",
+  "fuel_word": "fuel",
+  "kg": "kg",
+  "psi": "psi",
+  "steps": "What to do",
+  "sources": "Where the numbers come from",
+  "groups": {"aero": "Aerodynamics", "transmission": "Transmission", "geometry": "Geometry", "suspension": "Suspension",
+             "brakes": "Brakes", "tyres": "Tyres", "fuel": "Fuel"},
+  "rows": {"wings": "Wings F / R", "diff_on_throttle": "Differential on throttle", "diff_off_throttle": "Differential off throttle",
+           "camber": "Camber F / R", "toe": "Toe F / R", "suspension": "Suspension F / R", "anti_roll_bar": "Anti-roll bar F / R",
+           "ride_height": "Ride height F / R", "brake_pressure": "Brake pressure", "brake_bias": "Brake bias",
+           "engine_braking": "Engine braking", "pressure_front": "Front tyre pressure", "pressure_rear": "Rear tyre pressure",
+           "fuel": "Fuel"}
+}

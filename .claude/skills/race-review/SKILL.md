@@ -21,6 +21,12 @@ Critique rules and what to check in the data: `docs/RACE_REVIEW.md`, read it fir
      `off_wheels`, `gap_ms`) against the best clean lap. Find the moment where the lap differs and what the driver did with their hands;
    - the deficit to the car ahead at the finish and to P10 by total lap time from `race.history`: how many places the mistakes cost;
    - the fights: series of back-and-forth overtakes in "Events", where who overtook, ERS charge on the straights.
+   - the setup (rules: `docs/RACE_SETUP.md`): the report's "Setup" section and `py -3 tools/setup_history.py --track <track>`.
+     Compare the main setup with the previous sessions at this track and with the user's base (bold = changed); check the
+     changes during the session (differential and brake bias on the move, front wing at a pit stop) before comparing laps;
+     top speed against the rivals in qualifying and on clean laps; tyre temperatures. Before calling a loss a driving
+     mistake, compare the best lap with a rival's best lap of similar pace every 200 m (`race.rival_best[car]["trace"]`):
+     equal corners with slower straights or exits point to the setup, slower corners to the driving.
 3. Page data, with telemetry windows for the main episodes (window number = order of `--window`):
    `py -3 tools/race_review_data.py --window "7:4180:4400:Lap 7, spin" -o <scratchpad>/data.json`
    (write window labels in the user's language).
@@ -30,6 +36,7 @@ Critique rules and what to check in the data: `docs/RACE_REVIEW.md`, read it fir
    Publish each new race as a separate artifact (a new file path, for example `race_review_<track>_<date>.html`).
 6. Copy `data.json`, `review.json` and the html into `races/reports/<recording>/` so that races can be compared.
 7. In the reply to the user: the link and 3–4 lines of the main points. Don't retell the whole page.
+   If the setup explains part of the loss, say so and offer the race-setup skill for the next sessions.
 
 ## Page language
 
@@ -62,7 +69,7 @@ The template `tools/race_review_template.html` always draws the sections in the 
            "cost_note", "action", "window": 0, "window_note"}],     // 3–5, from the most to the least expensive; window: index or null
   "map_marks": [{"dist": 4300, "label": "L7 spin", "dx": 12, "dy": -10, "anchor": "start|end"}],
   "corners_text": "what the losses in corners have in common",
-  "strategy": [{"title": "Pit stops|Tyres|ERS and fuel|Start", "text"}],
+  "strategy": [{"title": "Pit stops|Tyres|ERS and fuel|Start|Setup", "text"}],   // "Setup" whenever the setup changed or explains a loss
   "field_text": "comparison with the teammate and the field",
   "lessons": [{"title", "text", "drill"}],          // 2–4 skills: explain the mechanics, not just "do this"
   "task": {"title", "text", "check"},               // one task and how to check it in the next report

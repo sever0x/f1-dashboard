@@ -1,0 +1,18 @@
+{
+  "decimal": ",",
+  "changed": "отличается от базы",
+  "base_prefix": "База",
+  "fuel_laps": "Кругов в гонке",
+  "fuel_word": "топливо",
+  "kg": "кг",
+  "psi": "psi",
+  "steps": "Порядок",
+  "sources": "Откуда цифры",
+  "groups": {"aero": "Аэродинамика", "transmission": "Трансмиссия", "geometry": "Геометрия", "suspension": "Подвеска",
+             "brakes": "Тормоза", "tyres": "Шины", "fuel": "Топливо"},
+  "rows": {"wings": "Крылья П / З", "diff_on_throttle": "Диф на газе", "diff_off_throttle": "Диф на сбросе",
+           "camber": "Развал П / З", "toe": "Схождение П / З", "suspension": "Подвеска П / З", "anti_roll_bar": "Стабилизатор П / З",
+           "ride_height": "Клиренс П / З", "brake_pressure": "Давление тормозов", "brake_bias": "Баланс тормозов",
+           "engine_braking": "Торможение двигателем", "pressure_front": "Давление передних", "pressure_rear": "Давление задних",
+           "fuel": "Топливо"}
+}

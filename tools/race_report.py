@@ -41,6 +41,12 @@ DAMAGE = struct.Struct("<4f4B4B4B18B")
 MOTION = struct.Struct("<6f6h6f")
 MOTION_EX = struct.Struct("<61f")
 SETUP = struct.Struct("<4B4f9B4fBf")
+# Car Setups packet order. Tyre pressures come rear first: RL, RR, FL, FR.
+SETUP_FIELDS = (
+    "front_wing", "rear_wing", "diff_on_throttle", "diff_off_throttle", "front_camber", "rear_camber", "front_toe", "rear_toe",
+    "front_suspension", "rear_suspension", "front_anti_roll_bar", "rear_anti_roll_bar", "front_ride_height", "rear_ride_height",
+    "brake_pressure", "brake_bias", "engine_braking", "pressure_rl", "pressure_rr", "pressure_fl", "pressure_fr", "ballast", "fuel",
+)
 FINAL = struct.Struct("<7BIdBBB8B8B8B")
 PARTICIPANT = struct.Struct("<7B32sBBHBB12x")
 LAP_HISTORY = struct.Struct("<IHBHBHBB")
@@ -88,7 +94,11 @@ INFRINGEMENTS = {
     27: "Ran wide, minor time gain", 28: "Ran wide, significant time gain", 29: "Ran wide, extreme time gain",
     30: "Lap invalidated, wall riding", 31: "Lap invalidated, flashback", 32: "Lap invalidated, reset to track",
     33: "Blocking pit lane", 34: "Jump start", 35: "Safety car collision", 36: "Safety car illegal overtake",
-    37: "Safety car pace exceeded",
+    37: "Safety car pace exceeded", 38: "Virtual safety car pace exceeded", 39: "Formation lap below speed",
+    40: "Formation lap parking", 41: "Retired, mechanical failure", 42: "Retired, terminally damaged",
+    43: "Safety car fell too far back", 44: "Black flag timer", 45: "Unserved stop go", 46: "Unserved drive through",
+    47: "Engine component change", 48: "Gearbox change", 49: "Parc ferme change", 50: "League grid penalty",
+    51: "Retry penalty", 52: "Illegal time gain", 53: "Mandatory pit stop", 54: "Attribute assigned",
 }
 OFF_TRACK_SURFACES = {3, 4, 5, 6, 7, 8}  # rumble strips, gravel, mud, sand, grass, water
 
@@ -155,7 +165,8 @@ class Race:
         self.forecast: List[Tuple[int, int, int, int]] = []
         self.names: Dict[int, str] = {}
         self.teams: Dict[int, int] = {}
-        self.setup: Optional[Tuple] = None
+        self.setup: Optional[Tuple] = None  # the last setup the game sent
+        self.setup_log: List[Tuple[float, Tuple]] = []  # (session time, setup) every time the setup changed
         self.history: Dict[int, dict] = {}
         self.final: Dict[int, dict] = {}
         self.events: List[dict] = []
@@ -230,6 +241,8 @@ class Loader:
             self._read_participants(data)
         elif pid == PID_SETUPS and race.player is not None:
             race.setup = SETUP.unpack_from(data, HEADER.size + race.player * SETUP.size)
+            if not race.setup_log or race.setup_log[-1][1] != race.setup:
+                race.setup_log.append((t, race.setup))
         elif pid == PID_DAMAGE and race.player is not None:
             record = DAMAGE.unpack_from(data, HEADER.size + race.player * DAMAGE.size)
             self._wear = record[:4]
@@ -253,7 +266,7 @@ class Loader:
             gearbox=data[o + 658], braking_assist=data[o + 657], ers_assist=data[o + 661], drs_assist=data[o + 662],
             racing_line=data[o + 663], flashback_limit=data[o + 681], damage=data[o + 687], equal_cars=data[o + 679],
             sc_periods=data[o + 676], vsc_periods=data[o + 677], red_flags=data[o + 678],
-            pit_speed=data[o + 13],
+            pit_speed=data[o + 13], parc_ferme=data[o + 694],
         )
         race.pit_window = (data[o + 653], data[o + 654])
         now = (weather, track_temp, air_temp)
@@ -961,6 +974,7 @@ def render(race: Race, result: dict) -> str:
     out += render_corners(result)
     out += render_mistakes(result)
     out += render_rivals(result)
+    out += render_setup(race, result)
     out += render_tyres(result)
     out += render_energy(result)
     out += render_pit(race, result)
@@ -1000,8 +1014,8 @@ def render_overview(race, result) -> List[str]:
     if tc:
         out.append("- TC is on: wheelspin is limited by the assist, its absence means nothing.")
     if race.setup:
-        v = race.setup
-        out.append(f"- Setup: wings {v[0]}/{v[1]}, diff {v[2]}/{v[3]}, brake pressure {v[14]}, brake bias {v[15]}, "
+        v = main_setup(race)
+        out.append(f"- Setup (see the Setup section): wings {v[0]}/{v[1]}, diff {v[2]}/{v[3]}, brake pressure {v[14]}, brake bias {v[15]}, "
                    f"fuel {plain(v[22], 1)}.")
     weather = race.weather_log
     if weather:
@@ -1121,6 +1135,103 @@ def render_rivals(result) -> List[str]:
         rows = [(f"T{row['corner']}", signed_s(row["delta_ms"]), signed(row["brake_m"]), signed(row["min_speed"]), signed(row["throttle_m"]),
                  signed(row["exit_speed"]), plain(row["line_m"], 1)) for row in sorted(item["rows"], key=lambda r: -r["delta_ms"])]
         out += table(("Corner", "Time, s", "Brake, m", "Min speed", "Full throttle, m", "Exit, km/h", "Apex offset, m"), rows)
+    return out
+
+
+def setup_named(setup: Optional[Sequence]) -> Optional[dict]:
+    """The player's setup as {field: value}, see SETUP_FIELDS."""
+    if not setup:
+        return None
+    return {name: round(value, 2) if isinstance(value, float) else value for name, value in zip(SETUP_FIELDS, setup)}
+
+
+def setup_periods(race: Race) -> List[dict]:
+    """Each setup the car had and how long, with the lap and metre where it started. The first one is often the garage
+    default; the differential and the brake bias are changed on the move, the front wing at a pit stop."""
+    if not race.setup_log:
+        return []
+    trace = race.trace
+    times = trace.t
+    end = times[-1] if len(trace) else race.setup_log[-1][0]
+    periods = []
+    for i, (start, setup) in enumerate(race.setup_log):
+        stop = race.setup_log[i + 1][0] if i + 1 < len(race.setup_log) else max(end, start)
+        k = bisect.bisect_left(times, start) if len(trace) else 0
+        on_track = len(trace) and k < len(trace) and start >= times[0]
+        lo, hi = (bisect.bisect_left(times, start), bisect.bisect_left(times, stop)) if len(trace) else (0, 0)
+        moving = sum(1 for j in range(lo, hi) if trace.speed[j] > 90)  # above the pit lane limit
+        periods.append({"start": start, "seconds": max(stop - start, 0.0), "moving_frames": moving, "setup": setup,
+                        "lap": int(trace.lap[k]) if on_track else None, "dist": round(trace.dist[k]) if on_track else None})
+    return periods
+
+
+def main_setup(race: Race) -> Optional[Tuple]:
+    """The setup the car was driven with longest (time in the garage does not count)."""
+    periods = setup_periods(race)
+    key = "moving_frames" if any(period["moving_frames"] for period in periods) else "seconds"
+    totals: Dict[Tuple, float] = {}
+    for period in periods:
+        totals[period["setup"]] = totals.get(period["setup"], 0.0) + period[key]
+    return max(totals, key=totals.get) if totals else race.setup
+
+
+def speed_trap(race: Race, result: dict) -> Optional[dict]:
+    """Top speed on the player's best lap against the top speed on the rivals' best laps."""
+    best = result.get("best")
+    if not best or not race.rival_best:
+        return None
+    rivals = sorted(((max(item["trace"].speed), car) for car, item in race.rival_best.items() if len(item["trace"])), reverse=True)
+    if not rivals:
+        return None
+    return {"mine": best["top_speed"], "median": statistics.median(speed for speed, _ in rivals),
+            "max": rivals[0][0], "max_car": rivals[0][1], "count": len(rivals)}
+
+
+def render_setup(race: Race, result: dict) -> List[str]:
+    v = setup_named(main_setup(race))
+    if not v:
+        return []
+    def pair(a, b, digits=0):
+        return f"{plain(v[a], digits)} / {plain(v[b], digits)}"
+    rows = [
+        ("Wings, front / rear", pair("front_wing", "rear_wing")),
+        ("Differential, on / off throttle, %", pair("diff_on_throttle", "diff_off_throttle")),
+        ("Camber, front / rear", pair("front_camber", "rear_camber", 2)),
+        ("Toe, front / rear", pair("front_toe", "rear_toe", 2)),
+        ("Suspension, front / rear", pair("front_suspension", "rear_suspension")),
+        ("Anti-roll bar, front / rear", pair("front_anti_roll_bar", "rear_anti_roll_bar")),
+        ("Ride height, front / rear", pair("front_ride_height", "rear_ride_height")),
+        ("Brake pressure, %", plain(v["brake_pressure"])),
+        ("Brake bias, % front", plain(v["brake_bias"])),
+        ("Engine braking, %", plain(v["engine_braking"])),
+        ("Tyre pressure front, psi (FL / FR)", pair("pressure_fl", "pressure_fr", 1)),
+        ("Tyre pressure rear, psi (RL / RR)", pair("pressure_rl", "pressure_rr", 1)),
+        ("Ballast", plain(v["ballast"])),
+        ("Fuel, kg", plain(v["fuel"], 1)),
+    ]
+    out = ["## Setup", "", "The setup the car was driven with longest (garage time does not count). Compare sessions with `tools/setup_history.py`.", ""]
+    out += table(("Parameter", "Value"), rows)
+    periods = setup_periods(race)
+    if len(periods) > 1:
+        out += ["", "Changes during the session (the differential and the brake bias change on the move, the front wing at a pit stop):", ""]
+        change_rows = []
+        for before, after in zip(periods, periods[1:]):
+            old, new = setup_named(before["setup"]), setup_named(after["setup"])
+            changed = ", ".join(f"{name} {plain(old[name], 2 if isinstance(old[name], float) else 0)} → "
+                                f"{plain(new[name], 2 if isinstance(new[name], float) else 0)}" for name in SETUP_FIELDS if old[name] != new[name])
+            where = f"lap {after['lap']}, {after['dist']} m" if after["lap"] is not None else "before driving"
+            change_rows.append((f"{after['start']:.0f}", where, changed, f"{after['seconds']:.0f}"))
+        out += table(("Time, s", "Where", "Changed", "Kept for, s"), change_rows)
+    parc = race.session.get("parc_ferme")
+    if parc is not None:
+        out += ["", f"- Parc ferme rules: {'on' if parc else 'off'}."]
+    trap = speed_trap(race, result)
+    if trap:
+        out.append(f"- Top speed on your best lap {trap['mine']} km/h; on the rivals' best laps: median {trap['median']:.0f}, "
+                   f"maximum {trap['max']:.0f} ({car_name(race, trap['max_car'])}), {trap['count']} cars. "
+                   "A single best lap is noisy: a lap in clean air has no DRS or slipstream. A gap of 8 km/h or more that repeats in "
+                   "qualifying and on the clean race laps (Vmax in the ERS table) points to wings or ERS rather than driving.")
+    out.append("")
     return out
 
 
