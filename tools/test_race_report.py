@@ -632,6 +632,46 @@ write_recording(cut, packets)
 text = (report.build(cut, tmp / "cut") / "report.md").read_text(encoding="utf-8")
 assert "No final classification" in text and "None" not in text
 
+# Setup: named fields, the setup the car was driven with, the report section, the history and the setup page
+import race_setup_page  # noqa: E402
+import setup_history  # noqa: E402
+
+named = report.setup_named(race.setup)
+assert list(named) == list(report.SETUP_FIELDS) and named["front_wing"] == 30 and named["pressure_rl"] == 22.0
+assert named["pressure_fl"] == 24.0 and named["fuel"] == 44.0, "tyre pressures come rear first in the packet"
+assert len(race.setup_log) == 1 and report.main_setup(race) == race.setup
+assert race.session["parc_ferme"] == 0
+full_text = report.render(race, result)
+assert "## Setup" in full_text and "| Wings, front / rear | 30 / 25 |" in full_text and "Parc ferme rules: off" in full_text
+assert "Changes during the session" not in full_text
+
+changed = copy.copy(race)
+later = race.trace.t[len(race.trace) // 2]
+changed.setup_log = [(0.0, race.setup), (later, (40,) + tuple(race.setup[1:]))]
+periods = report.setup_periods(changed)
+assert len(periods) == 2 and periods[1]["lap"] is not None and periods[0]["moving_frames"] > 0
+assert "front_wing 30 → 40" in "\n".join(report.render_setup(changed, result))
+
+info = setup_history.peek(path)
+assert info["setup"]["front_wing"] == 30 and info["setup_changes"] == 0 and info["parc_ferme"] is False
+
+sheet_data = {
+    "lang": "en", "page_title": "Test setup", "title": "Test setup",
+    "base": {"label": "test race", "setup": named},
+    "sections": [{"title": "", "sheets": [
+        {"kind": "dry", "tag": "Race", "title": "Dry", "setup": {"front_wing": 28, "pressure_rear": 21.0},
+         "fuel_calc": {"per_lap": 1.8, "margin": 1, "laps": 29}, "why": ["**Wings** lower"]}]}],
+}
+sheet_page = race_setup_page.render(sheet_data, race_setup_page.load_labels("en"))
+assert sheet_page.count('class="chg"') == 3, "front wing, rear pressure and the fuel formula differ from the base"
+assert "28 / 25" in sheet_page and "21.0 psi" in sheet_page and "<b>Wings</b>" in sheet_page and 'data-per-lap="1.8"' in sheet_page
+try:
+    race_setup_page.render({**sheet_data, "sections": [{"sheets": [{"setup": {"rear_wnig": 1}}]}]}, race_setup_page.load_labels("en"))
+    raise AssertionError("a misspelt field is refused")
+except SystemExit:
+    pass
+assert race_setup_page.load_labels("ru")["groups"]["aero"] == "Аэродинамика"
+
 # A recording without laps
 empty = tmp / "empty.f1rec.gz"
 write_recording(empty, [(0.0, header(1, 0.0, 0) + session_body())])

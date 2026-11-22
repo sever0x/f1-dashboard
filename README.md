@@ -22,6 +22,8 @@ is not part of this repository.
 | `f1_record.py` | Race recording into `races/*.f1rec.gz` and reading it back |
 | `tools/race_report.py` | Report on a recording: `races/reports/<recording>/report.md`, `laps.csv`, `corners.csv` |
 | `tools/race_review_data.py`, `tools/race_review_page.py`, `tools/race_review_template.html`, `tools/race_review_labels/` | Race review page: chart data, review text, page labels per language |
+| `tools/setup_history.py` | The player's car setup in every recording side by side, with the changes marked |
+| `tools/race_setup_page.py`, `tools/race_setup_template.html`, `tools/race_setup_labels/` | Setup sheet page for the coming sessions |
 | `tools/lap_video.py` | Best lap video: a replay clip with lap timer and telemetry panels, and a title card with a song |
 | `tools/test_bridge.py`, `tools/test_race_report.py`, `tools/test_web.py` | Tests on real UDP packets, on a simulated race with planted mistakes and of the web dashboard |
 | `run/*.bat` | Windows shortcuts for all bridge modes, reports and tests; extra arguments are passed through |
@@ -54,6 +56,7 @@ python f1_web.py --replay FILE --speed 4 --skip 10   # a given recording, 4x fas
 python tools/race_report.py                  # report on the last race
 python tools/race_report.py --any            # the last session of any type
 python tools/race_report.py --list           # list recordings
+python tools/setup_history.py --track Shanghai # setups of all sessions at a track
 ```
 
 The web dashboard runs at http://localhost:8025/ while the bridge is running (`--web-port` to change it, `--web-host

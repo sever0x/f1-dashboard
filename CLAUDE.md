@@ -1,7 +1,8 @@
 # F1 25 Dashboard
 
-Start with `README.md` (what the project is, layout, how to run). Race review rules: `docs/RACE_REVIEW.md`.
-Skills: `.claude/skills/race-review` (race review page), `.claude/skills/lap-video` (best lap video).
+Start with `README.md` (what the project is, layout, how to run). Race review rules: `docs/RACE_REVIEW.md`, setup rules: `docs/RACE_SETUP.md`.
+Skills: `.claude/skills/race-review` (race review page), `.claude/skills/race-setup` (setup sheet for coming sessions),
+`.claude/skills/lap-video` (best lap video).
 
 Reply in the user's language. Everything in the repository is in English: user interface text (the web dashboard,
 console messages, command line help), code comments, docstrings, tests, docs and commit messages.

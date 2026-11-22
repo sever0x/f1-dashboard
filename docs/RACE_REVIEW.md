@@ -35,6 +35,9 @@ The user asks something like "review my last race".
 - Assists: with ABS or TC on, the absence of lock-ups and wheelspin proves nothing. With automatic ERS or DRS these are not the user's decisions.
 - Corner numbers in the report are our own, not official. Name the official number only when certain, otherwise the lap metre.
 - If the data has no answer, say so. Don't fill the review with generic advice.
+- Check the setup before blaming the hands: the report's "Setup" section, the changes during the session and
+  `tools/setup_history.py`. A lap is compared with the setup it was driven on, and a pattern of equal corners with slow
+  straights or exits is a setup finding, not a driving one. Details: `docs/RACE_SETUP.md`.
 
 ## Review page
 
@@ -57,6 +60,12 @@ Page labels come from `tools/race_review_labels/`, so the page is in the same la
 - Online, the second player is also called `Player`, find the teammate via `race.teams`.
 - An impact is visible in `g_lon`/`g_lat` (−18.9 g and 9.6 g), wing damage in `wing_fl/wing_fr`.
 - Recordings of the same race from two PCs have the same session UID; the time in the file name follows each PC's clock.
+
+- The setup changes during a session: the differential and the brake bias on the move, the front wing at a pit stop
+  (Melbourne 20.11: 23 → 22 → 35). The first setup packets can carry the garage default. The report shows the setup driven
+  with longest and every change.
+- Parc ferme is on in the lobby, but after a weather change between qualifying and the race the setup could be changed
+  without a pit lane start (Shanghai 21.11).
 
 ## What to check on real recordings
 

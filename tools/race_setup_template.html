@@ -1,0 +1,88 @@
+<title>{{TITLE}}</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: one reading column; facts and decision steps on top, setup sheets side by side on wide screens, checklist below. */
+:root {
+  --bg: #f5f7f7; --panel: #ffffff; --fg: #16201f; --muted: #5b6968; --line: #d9e0df; --accent: #00857a;
+  --wet: #2f6fb5; --wet-soft: #e6eef8; --dry: #b5700f; --dry-soft: #f8efe2; --mix: #6b5fb0; --mix-soft: #eeecf8;
+  --warn: #b3261e; --chg: #fff3c4; --chg-fg: #5a4500;
+  --f-display: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Inter", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0f1514; --panel: #172020; --fg: #e4ecea; --muted: #93a3a1; --line: #2a3635; --accent: #3cc4b6;
+  --wet: #7fb2ef; --wet-soft: #17263a; --dry: #e8a64a; --dry-soft: #2c2214; --mix: #a99ef0; --mix-soft: #221f38;
+  --warn: #ff8a80; --chg: #3a3214; --chg-fg: #f4dc8a; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0f1514; --panel: #172020; --fg: #e4ecea; --muted: #93a3a1; --line: #2a3635; --accent: #3cc4b6;
+  --wet: #7fb2ef; --wet-soft: #17263a; --dry: #e8a64a; --dry-soft: #2c2214; --mix: #a99ef0; --mix-soft: #221f38;
+  --warn: #ff8a80; --chg: #3a3214; --chg-fg: #f4dc8a; color-scheme: dark; }
+body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--f-body); }
+.wrap { max-width: 1120px; margin: 0 auto; padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 28px; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; line-height: 1.2; }
+h1 { font-size: 2rem; font-weight: 700; } h2 { font-size: 1.3rem; font-weight: 700; } h3 { font-size: 1.05rem; font-weight: 700; }
+p { margin: 0; max-width: 68ch; }
+.eyebrow { font: 600 .72rem/1 var(--f-body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.lead { color: var(--muted); max-width: 72ch; }
+header { display: grid; gap: 10px; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 20px; display: grid; gap: 14px; }
+.facts { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+.fact { border-left: 3px solid var(--line); padding: 2px 0 2px 12px; display: grid; gap: 4px; min-width: 0; }
+.fact b { font-family: var(--f-display); font-size: 1rem; }
+.fact.on { border-color: var(--warn); } .fact.ok { border-color: var(--accent); }
+.flow { display: grid; gap: 8px; counter-reset: s; margin: 0; padding: 0; list-style: none; }
+.flow li { display: grid; grid-template-columns: 28px 1fr; gap: 10px; align-items: start; }
+.flow li::before { counter-increment: s; content: counter(s); font: 700 .85rem/28px var(--f-display);
+  width: 28px; height: 28px; text-align: center; border-radius: 50%; background: var(--accent); color: var(--panel); }
+.sheets { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); align-items: start; }
+.sheet { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; min-width: 0; }
+.sheet .top { padding: 16px 18px 12px; display: grid; gap: 6px; }
+.sheet.wet .top { background: var(--wet-soft); } .sheet.wet .tag { color: var(--wet); }
+.sheet.dry .top { background: var(--dry-soft); } .sheet.dry .tag { color: var(--dry); }
+.sheet.mix .top { background: var(--mix-soft); } .sheet.mix .tag { color: var(--mix); }
+.tag { font: 600 .72rem/1 var(--f-body); letter-spacing: .08em; text-transform: uppercase; }
+.sheet .when { font-size: .88rem; color: var(--muted); }
+table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+td { padding: 7px 18px; border-top: 1px solid var(--line); vertical-align: top; }
+td:first-child { color: var(--muted); width: 50%; }
+td:last-child { font-family: var(--f-mono); font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; white-space: nowrap; }
+tr.grp td { background: var(--bg); color: var(--muted); font: 600 .7rem/1 var(--f-body); letter-spacing: .08em; text-transform: uppercase; padding: 8px 18px; text-align: left; }
+tr.chg td:last-child { background: var(--chg); color: var(--chg-fg); }
+.why { padding: 12px 18px 16px; border-top: 1px solid var(--line); display: grid; gap: 6px; font-size: .88rem; }
+.why ul, .box ul, .src ul { margin: 0; padding-left: 18px; display: grid; gap: 5px; }
+.legend { display: flex; gap: 8px; align-items: center; font-size: .85rem; color: var(--muted); flex-wrap: wrap; }
+.legend i { display: inline-block; width: 14px; height: 14px; border-radius: 3px; background: var(--chg); border: 1px solid var(--line); }
+.fuel { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 12px 18px 16px; border-top: 1px solid var(--line); }
+.fuel label { font-size: .88rem; color: var(--muted); }
+.fuel input { width: 72px; font: 600 1rem var(--f-mono); padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); }
+.fuel input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.fuel output { font: 700 1.25rem var(--f-mono); color: var(--dry); }
+.cols { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.box { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: grid; gap: 10px; align-content: start; min-width: 0; }
+.src { font-size: .85rem; color: var(--muted); display: grid; gap: 6px; }
+@media (max-width: 480px) { h1 { font-size: 1.6rem; } td { padding: 7px 14px; } }
+</style>
+
+<div class="wrap">
+{{BODY}}
+</div>
+
+<script>
+document.querySelectorAll('.fuel').forEach(function (box) {
+  var input = box.querySelector('input'), out = box.querySelector('output');
+  var perLap = parseFloat(box.dataset.perLap), margin = parseFloat(box.dataset.margin), unit = box.dataset.unit;
+  function update() {
+    var laps = parseInt(input.value, 10);
+    if (!laps || laps < 1) { out.textContent = '—'; return; }
+    var kg = Math.ceil((laps * perLap + margin) * 2) / 2;
+    out.textContent = String(kg).replace('.', box.dataset.decimal || '.') + ' ' + unit;
+  }
+  input.addEventListener('input', update);
+  update();
+});
+</script>
